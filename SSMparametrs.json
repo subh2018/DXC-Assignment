@@ -1,0 +1,71 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources" : {
+    "RetrieveSSMParametersFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+		"FunctionName" : "exercise-lambda",
+        "Handler": "index.handler",
+		"Runtime": "python3.7",
+        "Role": { "Fn::GetAtt" : ["lambda-role", "Arn"] },
+        "Code": {
+			"ZipFile": {
+			  "import boto3\n"
+			  "import os\n"
+			  "client = boto3.client('ssm')\n"
+				"def lambda_handler(event, context):\n"
+				"response = client.get_parameter(Name='UserName')\n"
+				"result = response['Name']['Value']\n"
+				"s3 = boto3.client('s3')\n"
+				"bucket_name = os.environ['user-value']" 
+
+				"def handler(message, context):\n"
+				  "response = s3.put_object(\n"
+					"Bucket=bucket_name,\n"
+					"Key='SSM-parameters',\n"
+					"Body=result,\n"
+					"ACL='public-read'\n"
+					")\n"
+					"return response\n"
+				}
+			},			
+        },
+	"primerinvoke": {
+        "Type": "AWS::CloudFormation::CustomResource",
+        "Properties": {
+            "Handler": "lambda_function.lambda_handler",
+            "ServiceToken": "arn:aws:lambda:us-east-1:1234:function:exercise-lambda",
+            "FunctionName": "exercise-lambda"
+         }
+      }
+        
+    },
+    "lambda-role": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{ "Effect": "Allow", 
+						  "Principal": {"Service": ["lambda.amazonaws.com"]}, 
+						  "Action": ["sts:AssumeRole"] }]
+        },
+        "Path": "/",
+        "Policies": [{
+          "PolicyName": "root",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{ "Effect": "Allow", 
+							"Action": ["logs:*"], 
+							"Resource": "arn:aws:logs:*:*:*" }]
+          }
+        }]
+      }
+    }
+  },
+  "Outputs" : {
+    "SSMValue" : {
+	  "Condition" : "RetrieveSSMParametersFunction"
+      "Description" : "SSM parameters retrieved",
+      "Value" : { "result" }}
+    }
+}
